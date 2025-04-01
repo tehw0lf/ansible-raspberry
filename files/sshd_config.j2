@@ -1,0 +1,25 @@
+Include /etc/ssh/sshd_config.d/*.conf
+
+
+
+HostKey /etc/ssh/ssh_host_ed25519_key
+
+
+StrictModes yes
+PubkeyAuthentication yes
+
+AllowUsers {{ user }}
+PasswordAuthentication no
+PermitEmptyPasswords no
+PermitRootLogin without-password
+
+X11Forwarding yes
+PrintMotd no
+AcceptEnv LANG LC_*
+
+Subsystem       sftp    /usr/lib/openssh/sftp-server
+IgnoreRhosts yes
+ClientAliveInterval 3600
+ClientAliveCountMax 12
+TCPKeepAlive no
+Protocol 2

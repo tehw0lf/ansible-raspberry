@@ -1,0 +1,76 @@
+---
+- name: Prepare Initial Setup
+  hosts: localhost
+  connection: local
+  become: true
+  become_user: root
+  become_method: ansible.builtin.sudo
+  gather_facts: false
+  vars_files:
+    - vars.yml
+
+  tasks:
+    - name: Collect only facts about hardware
+      ansible.builtin.setup:
+        gather_subset:
+          - hardware
+
+    - name: Check if img.xz exists
+      ansible.builtin.stat:
+        path: "{{ ansible_env.PWD }}/img.xz"
+      register: compressed_img
+
+    - name: Check if img exists
+      stat:
+        path: "{{ ansible_env.PWD }}/img"
+      register: decompressed_img
+
+    - name: Download latest Raspi OS Lite
+      ansible.builtin.get_url:
+        url: "https://downloads.raspberrypi.org/raspios_lite_arm64_latest"
+        dest: "{{ ansible_env.PWD }}/img.xz"
+        mode: "0644"
+      when: not compressed_img.stat.exists and not decompressed_img.stat.exists
+
+    - name: Decompress img.xz
+      ansible.builtin.command: xz -d img.xz
+      args:
+        chdir: "{{ ansible_env.PWD }}"
+      when: not decompressed_img.stat.exists
+
+    - name: Write image to micro SD card
+      ansible.builtin.command: >
+        dd if="{{ ansible_env.PWD }}/img"
+        of="{{ micro_sd_device }}"
+        bs=4M
+        status=progress
+
+    - name: Sync
+      ansible.builtin.command: sync
+
+    - name: Mount boot partition
+      ansible.posix.mount:
+        fstype: vfat
+        path: /mnt/boot
+        src: "{{ micro_sd_device }}1"
+        state: ephemeral
+
+    - name: Touch ssh
+      ansible.builtin.command: touch /mnt/boot/ssh
+
+    - name: Create user configuration
+      ansible.builtin.shell: echo "{{ user }}:$(echo {{ pass }} | openssl passwd -6 -stdin)" > /mnt/boot/userconf
+
+    - name: Generate SSH key
+      ansible.builtin.shell: "bash gen_ssh_key.sh"
+      args:
+        chdir: "{{ ansible_env.PWD }}"
+
+    - name: Unmount boot partition
+      ansible.posix.mount:
+        path: /mnt/boot
+        state: unmounted
+
+    - name: Remove empty mount directory
+      shell:
+        cmd: rmdir /mnt/boot

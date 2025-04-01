@@ -1,0 +1,139 @@
+---
+- name: Clear old known hosts
+  hosts: localhost
+  connection: local
+  become: false
+  gather_facts: false
+  vars_files:
+    - vars.yml
+
+  tasks:
+    - name: Remove old known hosts entries by IP
+      ansible.builtin.command: sed '/^{{ raspberry_ip }}/d' -i /home/{{ local_user }}/.ssh/known_hosts
+    - name: Remove old known hosts entries by host name
+      ansible.builtin.command: sed '/^{{ user }}/d' -i /home/{{ local_user }}/.ssh/known_hosts
+
+- name: Initial Setup + Unattended Upgrades + Docker
+  hosts: raspberry_pi
+  become: true
+  become_user: root
+  become_method: ansible.builtin.sudo
+  remote_user: "{{ user }}"
+  gather_facts: false
+  vars_files:
+    - vars.yml
+
+  vars:
+    ansible_ssh_passphrase: "{{ pass }}"
+
+  tasks:
+    - name: Update package lists
+      ansible.builtin.apt:
+        update_cache: true
+
+    - name: Upgrade all packages
+      ansible.builtin.apt:
+        upgrade: "full"
+        state: present
+
+    - name: Install nano
+      ansible.builtin.apt:
+        name: nano
+        state: present
+
+    - name: Install kitty-terminfo
+      ansible.builtin.apt:
+        name: kitty-terminfo
+        state: present
+
+    - name: Update Raspberry Pi firmware
+      ansible.builtin.command: rpi-update
+      environment:
+        SKIP_WARNING: 1
+
+    - name: Install unattended-upgrades
+      ansible.builtin.apt:
+        name: unattended-upgrades
+        state: present
+
+    - name: Configure unattended-upgrades settings
+      ansible.builtin.template:
+        src: files/unattended-upgrades.conf.j2
+        dest: /etc/apt/apt.conf.d/50unattended-upgrades
+        mode: "0644"
+
+    - name: Reconfigure dpkg
+      ansible.builtin.command: dpkg-reconfigure -pmedium unattended-upgrades
+
+    - name: Ensure directory for Docker GPG keys exists
+      ansible.builtin.file:
+        path: /etc/apt/keyrings/
+        state: directory
+        mode: "0755"
+
+    - name: Download and add Docker GPG key
+      ansible.builtin.get_url:
+        url: "https://download.docker.com/linux/debian/gpg"
+        dest: "/etc/apt/keyrings/docker.asc"
+        mode: "0644"
+
+    - name: Add Docker APT repository
+      ansible.builtin.template:
+        src: files/docker.list.j2
+        dest: /etc/apt/sources.list.d/docker.list
+        mode: "0644"
+
+    - name: Update package cache
+      ansible.builtin.apt:
+        update_cache: true
+
+    - name: Install Docker components
+      ansible.builtin.apt:
+        pkg:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-buildx-plugin
+          - docker-compose-plugin
+
+    - name: Change hostname
+      ansible.builtin.command: echo {{ user }}>/etc/hostname
+
+    - name: Create SSH directory
+      ansible.builtin.command: mkdir -p /home/{{user}}/.ssh
+
+    - name: Copy public SSH key to authorized_keys
+      ansible.builtin.copy:
+        src: files/id_ed25519.pub
+        dest: /home/{{user}}/.ssh/authorized_keys
+        owner: "{{ user }}"
+        group: "{{ user }}"
+        mode: "0600"
+
+    - name: Copy SSH configuration
+      ansible.builtin.template:
+        src: files/sshd_config.j2
+        dest: /etc/ssh/sshd_config
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Restart SSH service to apply changes
+      ansible.builtin.service:
+        name: sshd
+        state: restarted
+
+    - name: Reboot System
+      ansible.builtin.reboot:
+        reboot_timeout: 60
+
+    - name: Wait for the system to come back online
+      ansible.builtin.wait_for_connection:
+        timeout: 300
+        delay: 10
+
+  pre_tasks:
+    - name: Install curl if not present
+      ansible.builtin.apt:
+        name: curl
+        state: present
