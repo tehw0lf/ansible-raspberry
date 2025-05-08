@@ -143,7 +143,7 @@
 
     - name: Restart SSH service to apply changes
       ansible.builtin.service:
-        name: sshd
+        name: ssh
         state: restarted
 
     - name: Reboot System
