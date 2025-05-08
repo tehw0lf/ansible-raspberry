@@ -59,7 +59,7 @@
       ansible.builtin.command: touch /mnt/boot/ssh
 
     - name: Create user configuration
-      ansible.builtin.shell: echo "{{ user }}:$(echo {{ pass }} | openssl passwd -6 -stdin)" > /mnt/boot/userconf
+      ansible.builtin.shell: echo "{{ main_user }}:$(echo {{ pass }} | openssl passwd -6 -stdin)" > /mnt/boot/userconf
 
     - name: Generate SSH key
       ansible.builtin.shell: "bash gen_ssh_key.sh"

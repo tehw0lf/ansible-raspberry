@@ -2,7 +2,7 @@
 
 create vars file
 `echo "micro_sd_device: /dev/sdb" > vars.yml`
-`echo "user: dockerpi" >> vars.yml`
+`echo "main_user: dockerpi" >> vars.yml`
 `echo "pass: random_password" >> vars.yml`
 `echo "local_user: tehwolf" >> vars.yml`
 `echo "raspberry_ip: ip_address" >> vars.yml`

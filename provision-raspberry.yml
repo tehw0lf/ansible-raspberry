@@ -11,14 +11,14 @@
     - name: Remove old known hosts entries by IP
       ansible.builtin.command: sed '/^{{ raspberry_ip }}/d' -i /home/{{ local_user }}/.ssh/known_hosts
     - name: Remove old known hosts entries by host name
-      ansible.builtin.command: sed '/^{{ user }}/d' -i /home/{{ local_user }}/.ssh/known_hosts
+      ansible.builtin.command: sed '/^{{ main_user }}/d' -i /home/{{ local_user }}/.ssh/known_hosts
 
 - name: Initial Setup + Unattended Upgrades + Docker
   hosts: raspberry_pi
   become: true
   become_user: root
   become_method: ansible.builtin.sudo
-  remote_user: "{{ user }}"
+  remote_user: "{{ main_user }}"
   gather_facts: false
   vars_files:
     - vars.yml
@@ -108,17 +108,17 @@
         state: restarted
 
     - name: Change hostname
-      ansible.builtin.command: echo {{ user }}>/etc/hostname
+      ansible.builtin.command: echo {{ main_user }}>/etc/hostname
 
     - name: Create SSH directory
-      ansible.builtin.command: mkdir -p /home/{{user}}/.ssh
+      ansible.builtin.command: mkdir -p /home/{{ main_user }}/.ssh
 
     - name: Copy public SSH key to authorized_keys
       ansible.builtin.copy:
         src: files/id_ed25519.pub
-        dest: /home/{{user}}/.ssh/authorized_keys
-        owner: "{{ user }}"
-        group: "{{ user }}"
+        dest: /home/{{ main_user }}/.ssh/authorized_keys
+        owner: "{{ main_user }}"
+        group: "{{ main_user }}"
         mode: "0600"
 
     - name: Copy SSH configuration to /tmp
