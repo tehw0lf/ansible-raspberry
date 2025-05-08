@@ -121,13 +121,25 @@
         group: "{{ user }}"
         mode: "0600"
 
-    - name: Copy SSH configuration
+    - name: Copy SSH configuration to /tmp
       ansible.builtin.template:
         src: files/sshd_config.j2
+        dest: /tmp/sshd_config
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Verify SSH configuration
+      ansible.builtin.command: sshd -t -f /tmp/sshd_config
+
+    - name: Copy SSH configuration to /etc
+      ansible.builtin.copy:
+        src: /tmp/sshd_config
         dest: /etc/ssh/sshd_config
         owner: root
         group: root
         mode: "0644"
+        remote_src: yes
 
     - name: Restart SSH service to apply changes
       ansible.builtin.service:
