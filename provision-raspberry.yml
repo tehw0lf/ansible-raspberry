@@ -124,22 +124,13 @@
     - name: Template SSH configuration to /tmp
       ansible.builtin.template:
         src: files/00-harden.conf.j2
-        dest: /tmp/00-harden.conf
+        dest: /etc/ssh/sshd_config.d/00-harden.conf
         owner: root
         group: root
         mode: "0644"
 
     - name: Verify SSH configuration
-      ansible.builtin.command: sshd -t -f /tmp/00-harden.conf
-
-    - name: Copy SSH configuration to /etc
-      ansible.builtin.copy:
-        src: /tmp/00-harden.conf
-        dest: /etc/ssh/sshd_config.d/00-harden.conf
-        owner: root
-        group: root
-        mode: "0644"
-        remote_src: yes
+      ansible.builtin.command: sshd -t
 
     - name: Restart SSH service to apply changes
       ansible.builtin.service:
