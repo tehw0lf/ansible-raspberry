@@ -134,12 +134,8 @@
 
     - name: Reboot System
       ansible.builtin.reboot:
-        reboot_timeout: 60
-
-    - name: Wait for the system to come back online
-      ansible.builtin.wait_for_connection:
-        timeout: 300
-        delay: 10
+        connect_timeout: 60
+        reboot_timeout: 15
 
   pre_tasks:
     - name: Install curl if not present
