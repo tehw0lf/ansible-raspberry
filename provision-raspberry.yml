@@ -129,9 +129,6 @@
         group: root
         mode: "0644"
 
-    - name: Verify SSH configuration
-      ansible.builtin.command: sshd -t
-
     - name: Reboot System
       ansible.builtin.reboot:
         connect_timeout: 60
