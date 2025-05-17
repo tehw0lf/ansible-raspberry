@@ -121,7 +121,7 @@
         group: "{{ main_user }}"
         mode: "0600"
 
-    - name: Template SSH configuration to /tmp
+    - name: Template SSH configuration
       ansible.builtin.template:
         src: files/00-harden.conf.j2
         dest: /etc/ssh/sshd_config.d/00-harden.conf
@@ -133,6 +133,7 @@
       ansible.builtin.reboot:
         connect_timeout: 60
         reboot_timeout: 15
+      ignore_errors: true
 
   pre_tasks:
     - name: Install curl if not present
